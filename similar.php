@@ -3,14 +3,14 @@
 if(php_sapi_name()!="cli") {
 
 if(!@$_POST['input']) {
-	?>
+    ?>
 <form action="" method="POST">
 от поставщика (&lt;Имя товара>): <br /><textarea name="input" cols="70" rows="15"></textarea><br />
 спарсенные имена (&lt;Имя товара>&lt;TAB>&lt;Ссылка на товар донора>): <br /><textarea name="parsed" cols="70" rows="15"></textarea><br />
 <input type=submit value="send">
 </form>
-	<?
-	exit;
+    <?
+    exit;
 }
 
 $input = $_POST['input'];
@@ -39,33 +39,38 @@ $parsed = $parsedcut;
 $busy = [];
 foreach($parsed as $pkey => &$parsed_item) {
     list($maxSimIndex, $ikey) = findSimilar($input, $parsed_item);
+    // l('$pkey', $pkey);
     if(isset($busy[$ikey])) {
         $pkey_old = $busy[$ikey];
-        l('$input[$ikey][0]', $input[$ikey][0], '$parsed_item[0]', $parsed_item[0], '$maxSimIndex', $maxSimIndex, '$pkey_old', $pkey_old, '$parsed[$pkey_old][2]', $parsed[$pkey_old][2]);
+        // l('$input[$ikey][0]', $input[$ikey][0], '$parsed_item[0]', $parsed_item[0], '$maxSimIndex', $maxSimIndex, '$pkey_old', $pkey_old, '$parsed[$pkey_old][2]', $parsed[$pkey_old][2]);
         $excludes = [];
         $iter = 1;
-        $parsed_old = $parsed[$pkey_old][2];
-        while($maxSimIndex < $parsed_old[count($parsed_old)-1] && count($input)!=count($excludes)) {
-            // if($iter==1) {
-            //     echo $parsed_item[0] . " --- " . "\n";
-            //     echo $input[$busy[$ikey]][0]  . " --- " . $busy[$ikey] . "\n";
-            // }
-            // echo ($iter++)." ".$maxSimIndex . "**$ikey"."\n";
-        	$parsed_item[1] = 9999999;
-        	$parsed_item[2][] = $maxSimIndex . "**$ikey";
-        	$excludes[] = $input[$ikey][0];
-        	list($maxSimIndex, $ikey) = findSimilar($input, $parsed_item, $excludes);
- 			if(!isset($busy[$ikey])) break;
-            $pkey_old = $busy[$ikey];
+        $sim_parsed_old = $parsed[$pkey_old][2];
+        while($maxSimIndex < $sim_parsed_old[count($sim_parsed_old)-1] && count($input)!=count($excludes)) {
+            $parsed_item[1] = 9999999;
+            $parsed_item[2][] = $maxSimIndex . "**$ikey";
+            $excludes[$ikey] = cut($input[$ikey][0]);
+            list($maxSimIndex, $ikey) = findSimilar($input, $parsed_item, $excludes);
+            if(!isset($busy[$ikey])) break;
         }
         if(isset($busy[$ikey])) {
-            $parsed[$pkey_old][2][] = "//" . $parsed[$pkey_old][1];
+            $pkey_old = $busy[$ikey];
             $parsed[$pkey_old][1] = 9999999;
-            $busy[$ikey] = $pkey;
+            $parsed[$pkey_old][2][] = "$maxSimIndex//" . $parsed[$pkey_old][1];
+            
+            while(isset($busy[$ikey])) {
+                list($maxSimIndex, $ikey) = findSimilar($input, $parsed[$pkey_old], $excludes);
+                
+            }
+            // do {
+            //     $pkey_old = $busy[$ikey];
+            //     $busy[$ikey] = $pkey;
+            //     $excludes[$ikey] = cut($input[$ikey][0]);
+            // } while(($maxSimIndex < $sim_parsed_old[count($sim_parsed_old)-1] || isset($busy[$ikey])) && count($input)!=count($excludes))
         }
     }
     $parsed_item[1] = $ikey;
-    $parsed_item[2][] = $maxSimIndex;
+    $parsed_item[2][] = $maxSimIndex."__$ikey";
     $busy[$ikey] = $pkey;
 }
 
@@ -83,20 +88,42 @@ foreach($parsed as $key => $val)
 l($val[1]."\t". @implode(", ", $val[2]) . "\t" . $val[0] . "\t" . $val[-1]);
 
 
+function shiftToOtherInput() {
 
+}
+
+function shiftToEnd() {
+
+}
+
+
+
+$simarr = [];
 
 function findSimilar($input, $parsed_item, $excludes = []) {
     $maxSimIndex = 0;
     $ikey = false;
-    foreach($input as $key => $input_item) {
-    	if(in_array($input_item[0], $excludes)) continue;
-        similar_text($input_item[0], $parsed_item[0], $sim);
+    $parsed_item_cut = cut($parsed_item[0]);
+    foreach($input as $key => $input_item)
+    {
+        $input_item_cut = cut($input_item[0]);
+        if(in_array(cut($input_item_cut), $excludes)) continue;
+        if(!isset($simarr[$input_item_cut . '_' . $key . '_' . $parsed_item_cut])) {
+            similar_text(cut($input_item_cut), cut($parsed_item_cut), $sim);
+            $simarr[$input_item_cut . '_' . $key . '_' . $parsed_item_cut] = $sim;
+        } else $sim = $simarr[$input_item_cut . '_' . $key . '_' . $parsed_item_cut];
+
         if($sim > $maxSimIndex) {
             $maxSimIndex = $sim;
             $ikey = $key;
         }
     }
     return [$maxSimIndex, $ikey];
+}
+
+function cut($str) {
+    //return $str;
+    return strtolower(preg_replace('@ ?\([^\)]{30,}\)|[^A-z \d]@', '', $str));
 }
 
 function l() {

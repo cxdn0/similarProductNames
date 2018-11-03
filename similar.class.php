@@ -1,8 +1,7 @@
 <?php
 
 class SimilarProductNames {
-    private $input = [];
-    private $a1 = $a2 = $a3 = $a4 = [];
+    private $input = [], $a1 = [], $a2 = [], $a3 = [], $a4 = [];
 
     function __construct($input, $parsed) {
         $this->input = $input;
@@ -16,13 +15,13 @@ class SimilarProductNames {
                 $result = true;
                 $el['assign'] = 999999;
                 $this->a4[] = $el;
-                unset($this->$a1[$k])
+                unset($this->a1[$k]);
                 return true;
             }
             $el['assign'] = $ikey;
             $el['sim'] = $sim;
             $this->a2[$ikey][] = $el;
-            unset($this->$a1[$k]);
+            unset($this->a1[$k]);
             return true;
         }
         return false;
@@ -38,7 +37,7 @@ class SimilarProductNames {
                 $i1 = 1;
             else
                 $i1 = 0;
-            $el[$i1]['history'][] = $el[$i1]['sim'] . '__' $el[$i1]['assign'];
+            $el[$i1]['history'][] = $el[$i1]['sim'] . '__' . $el[$i1]['assign'];
             $el[$i1]['excludes'][] = $el[$i1]['assign'];
             unset($el[$i1]['assign']);
             unset($el[$i1]['sim']);
@@ -50,17 +49,21 @@ class SimilarProductNames {
 
     //
     function thirdIterator() {
+        if(php_sapi_name()=='cli')
+        l('count(a1)', count($this->a1), 'count(a2)', count($this->a2), 'count(a3)', count($this->a3), 'count(a4)', count($this->a4));
         foreach($this->a3 as $k => $el) {
             list($sim, $ikey) = $this->findSim($this->input, $el);
             if($ikey===false) {
                 $result = true;
                 $el['assign'] = 999999;
                 $this->a4[] = $el;
-                unset($this->$a3[$k])
+                unset($this->a3[$k]);
                 return true;
             }
+            $el['assign'] = $ikey;
+            $el['sim'] = $sim;
             $this->a2[$ikey][] = $el;
-            unset($this->$a3[$k])
+            unset($this->a3[$k]);
             return true;
         }
         return false;
@@ -86,7 +89,7 @@ class SimilarProductNames {
         foreach($input as $key => $input_item)
         {
             $input_item_cut = $this->cut($input_item[0]);
-            if(in_array($key, $parsed_item['excludes'])) continue;
+            if(isset($parsed_item['excludes']) && in_array($key, $parsed_item['excludes'])) continue;
             similar_text($input_item_cut, $parsed_item_cut, $sim);
             
             if($sim > $maxSimIndex) {
@@ -99,6 +102,7 @@ class SimilarProductNames {
 
     private function cut($str) {
         //return $str;
+        return strtolower(preg_replace('@ ?\([^\)]{30,}\)@', '', $str));
         return strtolower(preg_replace('@ ?\([^\)]{30,}\)|[^A-z \d]@', '', $str));
     }
 }

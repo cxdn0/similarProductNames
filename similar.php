@@ -1,5 +1,7 @@
 <?php
 
+require('similar.class.php');
+
 if(php_sapi_name()!="cli") {
 
 if(!@$_POST['input']) {
@@ -69,7 +71,7 @@ array_multisort($sortarr, $result);
 foreach($result as $r)
 l(
     $r['assign'] . "\t".
-    implode(", ", array_merge((isset($r['sim']) ? [-1 => $r['sim']] : []), $r['history'])) . "\t" .
+    implode(", ", array_merge((isset($r['sim']) ? [-1 => $r['sim']] : []), (isset($r['history']) ? $r['history'] : []))) . "\t" .
     @$r['name'] . "\t" .
     $r['url']
 );

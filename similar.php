@@ -34,6 +34,11 @@ $parsed = array_map(function($v){
         ];
     }, explode("\n", $parsed));
 
+$parsedcut = [];
+$parsed = array_filter($parsed, function($el) {
+    return (count($el)!=0);
+});
+
 $sim = new SimilarProductNames($input, $parsed);
 
 while(true) {
